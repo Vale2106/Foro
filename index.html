@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Foro de Discusión</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Vincula la hoja de estilos -->
+</head>
+<body>
+    <div class="container">
+        <h1>Foro de Discusión</h1> <!-- Título principal del foro -->
+
+        <div id="createTopic" class="card">
+            <h2>Crea un nuevo tema</h2> <!-- Encabezado para crear un nuevo tema -->
+            <form id="topicForm"> <!-- Formulario para crear un nuevo tema -->
+                <input type="text" id="topicTitle" placeholder="Título del tema" required> <!-- Campo para ingresar el título del tema -->
+                <button type="submit">Crear Tema</button> <!-- Botón para enviar el formulario y crear el tema -->
+            </form>
+        </div>
+
+        <h2>Temas Disponibles</h2> <!-- Encabezado para mostrar los temas disponibles -->
+        <div id="topics" class="topics-list"></div> <!-- Contenedor donde se mostrarán los temas -->
+    </div>
+
+    <script>
+        const topics = []; // Array para almacenar los temas
+
+        // Evento que se activa al enviar el formulario
+        document.getElementById('topicForm').onsubmit = function(event) {
+            event.preventDefault(); // Prevenir el comportamiento por defecto del formulario
+            const title = document.getElementById('topicTitle').value; // Obtener el título ingresado
+
+            // Enviar el nuevo tema al servidor usando fetch
+            fetch('http://localhost:3000/topics', {
+                method: 'POST', // Método de la solicitud
+                headers: { 'Content-Type': 'application/json' }, // Establecer el tipo de contenido
+                body: JSON.stringify({ title: title }) // Convertir el objeto a JSON
+            })
+            .then(response => {
+                if (!response.ok) { // Verificar si la respuesta es correcta
+                    throw new Error('Error al crear el tema'); // Lanzar un error si hay problema
+                }
+                return response.json(); // Retornar los datos en formato JSON
+            })
+            .then(data => {
+                loadTopics(); // Actualizar la lista de temas después de crear uno nuevo
+                document.getElementById('topicTitle').value = ''; // Limpiar el campo de entrada
+            })
+            .catch(error => console.error('Error:', error)); // Registrar errores en la consola
+        };
+
+        // Función para cargar los temas disponibles desde el servidor
+        function loadTopics() {
+            fetch('http://localhost:3000/topics') // Solicitar los temas al servidor
+                .then(response => {
+                    if (!response.ok) { // Verificar si la respuesta es correcta
+                        throw new Error('Error al cargar los temas'); // Lanzar un error si hay problema
+                    }
+                    return response.json(); // Retornar los datos en formato JSON
+                })
+                .then(data => {
+                    topics.length = 0; // Limpiar el array de temas
+                    data.forEach(topic => topics.push(topic)); // Agregar los temas al array
+                    const topicsDiv = document.getElementById('topics'); // Obtener el contenedor de temas
+                    topicsDiv.innerHTML = ''; // Limpiar la lista existente
+                    topics.forEach(topic => {
+                        const topicElement = document.createElement('div'); // Crear un nuevo elemento para cada tema
+                        topicElement.classList.add('topic'); // Agregar clase para estilos
+                        topicElement.textContent = topic.title; // Establecer el texto del elemento
+                        topicElement.onclick = function() { // Evento al hacer clic en el tema
+                            window.location.href = `topic.html?id=${topic.id}`; // Redirigir a la página del tema
+                        };
+                        topicsDiv.appendChild(topicElement); // Agregar el elemento a la lista de temas
+                    });
+                })
+                .catch(error => console.error('Error al cargar temas:', error)); // Registrar errores en la consola
+        }
+
+        loadTopics(); // Llamar a la función para cargar los temas al iniciar la página
+    </script>
+</body>
+</html>

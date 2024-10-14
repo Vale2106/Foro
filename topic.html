@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Tema de Discusión</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 id="topicTitle"></h1>
+
+        <div id="opinionsSection" class="card">
+            <h2>Opiniones</h2>
+            <div id="opinionsList"></div>
+            <form id="opinionForm">
+                <textarea id="opinionContent" placeholder="Escribe tu opinión" required></textarea>
+                <button type="submit">Enviar Opinión</button>
+                <p id="errorMessage" style="color:red; display:none;"></p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const topicId = urlParams.get('id');
+
+        document.getElementById('opinionForm').onsubmit = function(event) {
+            event.preventDefault();
+            const content = document.getElementById('opinionContent').value;
+
+            if (content.length < 5) { // Validación de longitud mínima
+                showError("La opinión debe tener al menos 5 caracteres.");
+                return;
+            }
+
+            // Enviar nueva opinión al servidor
+            fetch('http://localhost:3000/opinions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topicId: topicId, content: content })
+            })
+            .then(handleResponse)
+            .then(() => {
+                loadOpinions(); // Recargar opiniones
+                document.getElementById('opinionContent').value = ''; // Limpiar textarea
+                hideError();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError("Error al enviar la opinión.");
+            });
+        };
+
+        // Función para manejar las respuestas de fetch
+        function handleResponse(response) {
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            return response.json();
+        }
+
+        // Función para mostrar errores
+        function showError(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        // Función para ocultar errores
+        function hideError() {
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.style.display = 'none';
+        }
+
+        // Cargar el título del tema y las opiniones
+        function loadTopicAndOpinions() {
+            fetch(`http://localhost:3000/topics`)
+                .then(handleResponse)
+                .then(data => {
+                    const topic = data.find(t => t.id === parseInt(topicId));
+                    if (topic) {
+                        document.getElementById('topicTitle').textContent = topic.title;
+                    }
+                })
+                .catch(error => console.error('Error al cargar el tema:', error));
+
+            loadOpinions();
+        }
+
+        // Cargar opiniones del tema
+        function loadOpinions() {
+            fetch(`http://localhost:3000/opinions?topicId=${topicId}`)
+                .then(handleResponse)
+                .then(opinions => {
+                    const opinionsList = document.getElementById('opinionsList');
+                    opinionsList.innerHTML = ''; // Limpiar la lista existente
+
+                    if (opinions.length === 0) {
+                        opinionsList.innerHTML = '<p>No hay opiniones para este tema.</p>';
+                    } else {
+                        opinions.forEach(opinion => {
+                            const opinionElement = document.createElement('div');
+                            opinionElement.classList.add('opinion');
+                            opinionElement.textContent = opinion.content;
+                            opinionsList.appendChild(opinionElement);
+                        });
+                    }
+                })
+                .catch(error => console.error('Error al cargar opiniones:', error));
+        }
+
+        // Llamar a la función para cargar el tema y las opiniones
+        loadTopicAndOpinions();
+    </script>
+</body>
+</html>
